@@ -1,0 +1,30 @@
+[build-system]
+requires = [
+    "setuptools",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.isort]
+include_trailing_comma = true
+multi_line_output = 5  # "Hanging Grid Grouped"
+
+[tool.mypy]
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = 'starkware.*'
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pytester_example_dir = "."
+addopts = '''
+    --flake8
+    --isort
+    --mypy
+    --ignore-glob="*.cairo"
+    --asyncio-mode=strict
+    -W error
+    -W ignore::DeprecationWarning
+    -W ignore::ResourceWarning
+'''
