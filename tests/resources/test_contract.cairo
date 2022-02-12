@@ -2,9 +2,9 @@
 # module that uses it.
 %lang starknet
 
-# We currently cannot import 'HashBuiltin' independently, so import it from
-# the implementation contract.
-from contract import HashBuiltin, do_the_thing
+from starkware.cairo.common.cairo_builtins import HashBuiltin
+
+from contract import do_the_thing
 
 
 # Function must be marked as 'external' to allow the plugin to call it.
