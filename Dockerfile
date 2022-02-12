@@ -3,8 +3,8 @@ FROM python:${PYTHON_VERSION}
 
 WORKDIR /app
 
-COPY requirements-dev.txt .
+COPY requirements-dev.txt run_tests ./
 
 RUN pip install -r requirements-dev.txt
 
-ENTRYPOINT ["pytest", "--override-ini", "cache_dir=.pytest_cache/${PYTHON_VERSION}"]
+ENTRYPOINT ["./run_tests"]

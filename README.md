@@ -17,7 +17,7 @@ $ pip install -r requirements-dev.txt
 ```
 Run tests with:
 ```bash
-$ pytest
+$ ./run_tests
 ```
 or:
 ```bash

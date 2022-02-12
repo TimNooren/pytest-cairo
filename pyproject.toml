@@ -19,9 +19,6 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 pytester_example_dir = "."
 addopts = '''
-    --flake8
-    --isort
-    --mypy
     --ignore-glob="*.cairo"
     --asyncio-mode=strict
     -W error
