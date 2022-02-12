@@ -1,19 +1,39 @@
 import asyncio
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Iterable, List, Optional, Union
 
 import py
 import pytest
 from _pytest._code.code import ExceptionInfo, TerminalRepr
 from _pytest.nodes import Collector, Node
+from starkware.starknet.compiler.compile import compile_starknet_files
 from starkware.starknet.testing.starknet import Starknet, StarknetContract
 from starkware.starkware_utils.error_handling import StarkException
+
+
+def create_dummy_constructor_calldata(abi: List[dict]) -> List[int]:
+
+    constructor_def = next(
+        filter(lambda x: x['type'] == 'constructor', abi),
+        None,
+    )
+    if constructor_def is None:
+        return []
+    else:
+        return [0 for _ in constructor_def['inputs']]
 
 
 def deploy_contract_sync(source: str) -> Starknet:
 
     async def deploy_contract(source: str) -> Starknet:
         starknet = await Starknet.empty()
-        return await starknet.deploy(source=source)
+        contract_def = compile_starknet_files(files=[source], debug_info=True)
+        constructor_calldata = create_dummy_constructor_calldata(
+            contract_def.abi,
+        )
+        return await starknet.deploy(
+            contract_def=contract_def,
+            constructor_calldata=constructor_calldata,
+        )
 
     return asyncio.run(deploy_contract(source))
 
