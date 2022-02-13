@@ -12,7 +12,7 @@ setup(
     long_description_content_type='text/markdown',
     url='https://github.com/TimNooren/pytest-cairo',
     packages=[SOURCE],
-    version='0.0.0',
+    version='0.0.1',
     # Make the plugin available to pytest:
     entry_points={'pytest11': [f'{PLUGIN_NAME} = {SOURCE}.plugin']},
     # PyPI classifier for pytest plugins:
