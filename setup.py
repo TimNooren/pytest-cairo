@@ -7,8 +7,10 @@ SOURCE = 'pytest_cairo'
 
 setup(
     name=PLUGIN_NAME,
+    description='Pytest support for cairo-lang and starknet',
     long_description=(Path(__file__).parent / 'README.md').read_text(),
     long_description_content_type='text/markdown',
+    url='https://github.com/TimNooren/pytest-cairo',
     packages=[SOURCE],
     version='0.0.0',
     # Make the plugin available to pytest:
