@@ -4,7 +4,7 @@
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 
-from contract import do_the_thing
+from contracts.contract import do_the_thing
 
 
 # Function must be marked as 'external' to allow the plugin to call it.
