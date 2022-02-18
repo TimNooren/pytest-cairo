@@ -153,3 +153,5 @@ cython_debug/
 
 .vscode/
 .docker/
+
+pytest_cairo/_version.py

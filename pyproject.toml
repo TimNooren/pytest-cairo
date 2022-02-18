@@ -1,9 +1,14 @@
 [build-system]
 requires = [
+    "setuptools_scm[toml]",
     "setuptools",
     "wheel"
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_scheme = "no-guess-dev"
+write_to = "pytest_cairo/_version.py"
 
 [tool.isort]
 include_trailing_comma = true
