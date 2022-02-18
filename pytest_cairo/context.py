@@ -5,7 +5,17 @@ from starkware.starknet.compiler.compile import compile_starknet_files
 from starkware.starknet.testing.starknet import Starknet, StarknetContract
 from starkware.starknet.testing.state import StarknetState
 
-from pytest_cairo.plugin import create_dummy_constructor_calldata
+
+def create_dummy_constructor_calldata(abi: List[dict]) -> List[int]:
+
+    constructor_def = next(
+        filter(lambda x: x['type'] == 'constructor', abi),
+        None,
+    )
+    if constructor_def is None:
+        return []
+    else:
+        return [0 for _ in constructor_def['inputs']]
 
 
 class Context:
