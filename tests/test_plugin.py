@@ -4,6 +4,7 @@ import pytest
 from _pytest.pytester import Pytester
 
 from pytest_cairo.plugin import create_dummy_constructor_calldata
+from tests import RESOURCES_DIR
 
 
 @pytest.mark.parametrize('abi,constructor_calldata', [
@@ -26,6 +27,6 @@ def test_create_dummy_constructor_calldata(
 def test_plugin(pytester: Pytester) -> None:
     # Note: `copy_example` requires pytester_example_dir to be set in the
     # pytest config.
-    pytester.copy_example('tests/resources/')
+    pytester.copy_example(str(RESOURCES_DIR))
     run_result = pytester.runpytest()
     run_result.assert_outcomes(passed=1)
