@@ -1,10 +1,9 @@
 cairo-lang
-flake8
 flake8-commas
 flake8-comprehensions
 flake8-quotes
-isort
-isort[colors]
-mypy
 pytest
+pytest-flake8-v2
+pytest-isort
+pytest-mypy
 types-setuptools

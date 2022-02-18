@@ -3,8 +3,8 @@ FROM python:${PYTHON_VERSION}
 
 WORKDIR /app
 
-COPY requirements-dev.txt run_tests ./
+COPY requirements-dev.txt ./
 
 RUN pip install -r requirements-dev.txt
 
-ENTRYPOINT ["./run_tests"]
+ENTRYPOINT pytest
