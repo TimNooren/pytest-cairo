@@ -22,9 +22,9 @@ def create_dummy_constructor_calldata(abi: List[dict]) -> List[int]:
         return [0 for _ in constructor_def['inputs']]
 
 
-def deploy_contract_sync(source: str) -> Starknet:
+def deploy_contract_sync(source: str) -> StarknetContract:
 
-    async def deploy_contract(source: str) -> Starknet:
+    async def deploy_contract(source: str) -> StarknetContract:
         starknet = await Starknet.empty()
         contract_def = compile_starknet_files(files=[source], debug_info=True)
         constructor_calldata = create_dummy_constructor_calldata(
