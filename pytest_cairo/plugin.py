@@ -1,43 +1,48 @@
 import asyncio
-from typing import Any, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Iterable, Optional, Union
 
 import py
 import pytest
 from _pytest._code.code import ExceptionInfo, TerminalRepr
 from _pytest.nodes import Collector, Node
-from starkware.starknet.testing.starknet import StarknetContract
-from starkware.starkware_utils.error_handling import StarkException
 
 from pytest_cairo.context import Context
+from pytest_cairo.contract import TestContractWrapper, TestFunction
+
+if TYPE_CHECKING:
+    # Imported here due to circular import.
+    from _pytest._code.code import _TracebackStyle
 
 
 class CairoItem(pytest.Item):
 
     def __init__(
-        self, name: str,
+        self,
+        name: str,
         parent: Optional[Node],
         context: Context,
-        contract: StarknetContract,
+        contract_wrapper: TestContractWrapper,
         contract_function_name: str,
     ) -> None:
         super().__init__(name, parent)
         self.context = context
-        self.contract = contract
+        self.contract_wrapper = contract_wrapper
         self.contract_function_name = contract_function_name
 
     def runtest(self) -> None:
-        contract_function = getattr(self.contract, self.contract_function_name)
-        # `invoke` is faster than `call`.
-        asyncio.run(contract_function().invoke())
+        with TestFunction(
+            self.contract_wrapper, self.contract_function_name,
+        ) as func:
+            asyncio.run(func.invoke())
+
         self.context.rollback()
 
     def repr_failure(
-        self, excinfo: ExceptionInfo[BaseException], *_: Any,
+        self,
+        excinfo: ExceptionInfo[BaseException],
+        style: 'Optional[_TracebackStyle]' = None,
     ) -> Union[str, TerminalRepr]:
-        if isinstance(excinfo.value, StarkException):
-            return repr(excinfo.value)
-        else:
-            return ''
+        return super().repr_failure(excinfo, style='short')
 
 
 class CairoFile(pytest.File):
@@ -45,16 +50,18 @@ class CairoFile(pytest.File):
     def collect(self) -> Iterable[Union[CairoItem, Collector]]:
         assert isinstance(self.fspath, py.path.local)
         context = Context()
-        contract = context.deploy_contract(source=self.fspath.strpath)
+        contract_wrapper = context.deploy_contract(
+            source=self.fspath.strpath)
         context.set_checkpoint()
-        for contract_function_name in contract._abi_function_mapping:
+        for abi_entry in contract_wrapper.contract_def.abi:
+            contract_function_name = abi_entry['name']
             if not contract_function_name.startswith('test'):
                 continue
             yield CairoItem.from_parent(
                 self,
                 name=contract_function_name,
                 context=context,
-                contract=contract,
+                contract_wrapper=contract_wrapper,
                 contract_function_name=contract_function_name,
             )
 

@@ -8,4 +8,4 @@ def test_plugin(pytester: Pytester) -> None:
     # pytest config.
     pytester.copy_example(str(RESOURCES_DIR))
     run_result = pytester.runpytest()
-    run_result.assert_outcomes(passed=3)
+    run_result.assert_outcomes(passed=4)

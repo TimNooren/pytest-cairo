@@ -1,6 +1,7 @@
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin
+from starkware.cairo.common.math import assert_not_zero
 
 @constructor
 func constructor{
@@ -11,10 +12,11 @@ func constructor{
 end
 
 @view
-func do_the_thing{
+func calculate_inverse{
     syscall_ptr : felt*,
     pedersen_ptr : HashBuiltin*,
     range_check_ptr,
-}() -> (val : felt):
-    return (1)
+}(val : felt) -> (res : felt):
+    assert_not_zero(val)
+    return (1 / val)
 end
