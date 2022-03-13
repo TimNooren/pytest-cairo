@@ -1,7 +1,8 @@
+import asyncio
+import contextlib
 import re
 from dataclasses import dataclass
-from types import TracebackType
-from typing import Optional, Type
+from typing import Generator, Iterator, List, Optional
 
 from _pytest.outcomes import fail
 from starkware.cairo.lang.compiler.constants import MAIN_SCOPE
@@ -23,85 +24,124 @@ from pytest_cairo.info_collector import (
 
 
 @dataclass
-class TestContractWrapper:
-    starknet_contract: StarknetContract
-    contract_def: ContractDefinition
-    info_collector: ContractFunctionInfoCollector
+class ExpectedException:
+    start_pc: int
+    end_pc: int
+    message: Optional[str]
+
+    @classmethod
+    def from_attribute_scope(
+        cls, attribute_scope: AttributeScope,
+    ) -> 'ExpectedException':
+        return cls(
+            start_pc=attribute_scope.start_pc,
+            end_pc=attribute_scope.end_pc,
+            message=attribute_scope.value,
+        )
+
+
+@contextlib.contextmanager
+def catch_expected_exceptions(
+    expected_exceptions: List[ExpectedException],
+) -> Iterator[None]:
+
+    if len(expected_exceptions) > 1:
+        raise ValueError('Currently one "raises" block allowed per function.')
+
+    expected = next(iter(expected_exceptions), None)
+
+    try:
+        yield
+    except StarkException as e:
+        if not expected:
+            raise
+
+        # Get the pc values of the traceback entries and check whether any
+        # of them occurred inside the "raises" block. REVIEW: Ideally we
+        # would access the actual traceback entries (and not resort to
+        # regex), but I haven't found a way to access those.
+        pc_pattern = r'pc=\d+:(\d+)'
+        if not any(
+            expected.start_pc <= int(traceback_pc) < expected.end_pc
+            for traceback_pc in re.findall(pc_pattern, e.message)
+        ):
+            raise
+
+        if re.search(expected.message or '', e.message):
+            return
+        raise
+    else:
+        if expected:
+            fail(f'Did not raise "{expected}"')
 
 
 class TestFunction:
     def __init__(
         self,
-        contract_wrapper: TestContractWrapper,
-        contract_function_name: str,
+        info: ContractFunctionInfo,
+        function_invocation: StarknetContractFunctionInvocation,
+        expected_exceptions: List[ExpectedException],
     ) -> None:
-        self.contract_wrapper = contract_wrapper
-        self.contract_function_name = contract_function_name
+        self._info = info
+        self._function_invocation = function_invocation
+        self.expected_exceptions = expected_exceptions
 
-    def __enter__(self) -> StarknetContractFunctionInvocation:
-        starknet_contract = self.contract_wrapper.starknet_contract
-        func_object = starknet_contract.get_contract_function(
-            self.contract_function_name,
-        )
-        return func_object()
+    def invoke(self) -> None:
+        with catch_expected_exceptions(self.expected_exceptions):
+            asyncio.run(self._function_invocation.invoke())
 
-    def __exit__(
+    @property
+    def name(self) -> str:
+        return self._info.name
+
+
+class TestContract:
+
+    def __init__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
-    ) -> bool:
-        if exc_val is not None:
-            if not isinstance(exc_val, StarkException):
-                return False
-
-            if not self._expected_exception:
-                return False
-
-            # Get the pc values of the traceback entries and check whether any
-            # of them occurred inside the "raises" block. REVIEW: Ideally we
-            # would access the actual traceback entries (and not resort to
-            # regex), but I haven't found a way to access those.
-            pc_pattern = r'pc=\d+:(\d+)'
-            block_start_pc = self._expected_exception.start_pc
-            block_end_pc = self._expected_exception.end_pc
-            if not any(
-                block_start_pc <= int(traceback_pc) < block_end_pc
-                for traceback_pc in re.findall(pc_pattern, exc_val.message)
-            ):
-                return False
-
-            if re.search(
-                self._expected_exception.value or '',
-                exc_val.message,
-            ):
-                return True
-        else:
-            if self._expected_exception:
-                fail(f'Did not raise "{self._expected_exception.value}"')
-
-        return False
+        contract: StarknetContract,
+        contract_def: ContractDefinition,
+        info_collector: ContractFunctionInfoCollector,
+    ) -> None:
+        self.contract = contract
+        self.contract_def = contract_def
+        self.info_collector = info_collector
 
     @property
-    def _expected_exception(self) -> Optional[AttributeScope]:
-        attrs = [
-            attr
-            for attr in self.contract_wrapper.contract_def.program.attributes
-            if attr.name == 'raises' and (
-                # Check if attribute is inside the current function
-                attr.start_pc >= self._contract_function_info.start_pc and
-                attr.start_pc < self._contract_function_info.end_pc
+    def test_functions(self) -> Generator[TestFunction, None, None]:
+        for abi_entry in self.contract_def.abi:
+            function_name = abi_entry['name']
+            if not function_name.startswith('test'):
+                continue
+            function_info = self.info_collector.get_function_info(
+                MAIN_SCOPE + function_name,
             )
+            function_invocation = self.contract.get_contract_function(
+                function_name,
+            )()
+
+            # Copy contract state so each function runs in isolation.
+            function_invocation.state = self.contract.state.copy()
+
+            expected_exceptions = self.get_expected_exceptions_for_function(
+                self.contract_def,
+                function_info,
+            )
+            yield TestFunction(
+                info=function_info,
+                function_invocation=function_invocation,
+                expected_exceptions=expected_exceptions,
+            )
+
+    @staticmethod
+    def get_expected_exceptions_for_function(
+        contract_def: ContractDefinition,
+        function_info: ContractFunctionInfo,
+    ) -> List[ExpectedException]:
+        return [
+            ExpectedException.from_attribute_scope(attr)
+            for attr in contract_def.program.attributes
+            if attr.name == 'raises' and
+            # Check if attribute is inside the function
+            function_info.start_pc <= attr.start_pc < function_info.end_pc
         ]
-        assert len(attrs) <= 1, 'One "raises" block allowed per function.'
-
-        if attrs:
-            return attrs[0]
-        else:
-            return None
-
-    @property
-    def _contract_function_info(self) -> ContractFunctionInfo:
-        return self.contract_wrapper.info_collector.get_function_info(
-            MAIN_SCOPE + self.contract_function_name,
-        )
