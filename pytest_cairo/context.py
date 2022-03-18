@@ -12,15 +12,17 @@ from starkware.starknet.compiler.starknet_pass_manager import (
     starknet_pass_manager,
 )
 from starkware.starknet.compiler.starknet_preprocessor import (
-    StarknetPreprocessedProgram,
+    SUPPORTED_DECORATORS, StarknetPreprocessedProgram,
 )
 from starkware.starknet.services.api.contract_definition import (
     ContractDefinition,
 )
 from starkware.starknet.testing.starknet import Starknet
 
-from pytest_cairo.contract import TestContract
+from pytest_cairo.contract import FIXTURE_DECORATOR, TestContract
 from pytest_cairo.info_collector import ContractFunctionInfoCollector
+
+SUPPORTED_DECORATORS.add(FIXTURE_DECORATOR)
 
 
 class Context:
@@ -30,7 +32,7 @@ class Context:
 
     def deploy_contract(self, source: str) -> TestContract:
         assert Path(source).is_file()
-        contract_def, info_collector = self.compile_contracts([source])
+        contract_def, preprocessed = self.compile_contracts([source])
         constructor_calldata = self.create_dummy_constructor_calldata(
             contract_def.abi,
         )
@@ -38,14 +40,14 @@ class Context:
             contract_def=contract_def,
             constructor_calldata=constructor_calldata,
         ))
-        return TestContract(contract, contract_def, info_collector)
+        return TestContract(contract, contract_def, preprocessed)
 
     @staticmethod
     def compile_contracts(
         files: List[str],
         cairo_path: List[str] = [],
         debug_info: bool = True,
-    ) -> Tuple[ContractDefinition, ContractFunctionInfoCollector]:
+    ) -> Tuple[ContractDefinition, StarknetPreprocessedProgram]:
 
         pass_manager = starknet_pass_manager(
             prime=DEFAULT_PRIME,
@@ -69,7 +71,7 @@ class Context:
                 entry_points_by_type=get_entry_points_by_type(program=program),
                 abi=preprocessed.abi,
             ),
-            preprocessed.auxiliary_info,
+            preprocessed,
         )
 
     @staticmethod
