@@ -3,14 +3,40 @@ from typing import TYPE_CHECKING, Iterable, Optional, Union
 import py
 import pytest
 from _pytest._code.code import ExceptionInfo, TerminalRepr
+from _pytest.config import Config, PytestPluginManager
+from _pytest.config.argparsing import Parser
 from _pytest.nodes import Collector, Node
 
 from pytest_cairo.context import Context
 from pytest_cairo.contract import TestFunction
+from pytest_cairo.patch import disable_contract_hash_computation
 
 if TYPE_CHECKING:
     # Imported here due to circular import.
     from _pytest._code.code import _TracebackStyle
+
+
+def pytest_addoption(
+    parser: Parser, pluginmanager: PytestPluginManager,
+) -> None:
+    help = 'Disable computation of contract hash to speed up tests.'
+    name = 'disable_contract_hash_computation'
+    default = False
+    parser.addoption(
+        '--disable-contract-hash-computation',
+        action='store_true',
+        dest=name,
+        default=default,
+        help='Disable computation of contract hash to speed up tests.',
+    )
+
+
+def pytest_configure(config: Config) -> None:
+    if (
+        config.getoption('disable_contract_hash_computation') or
+        config.getini('disable_contract_hash_computation')
+    ):
+        disable_contract_hash_computation()
 
 
 class CairoItem(pytest.Item):
