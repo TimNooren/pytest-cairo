@@ -1,3 +1,6 @@
+import shutil
+import tempfile
+from pathlib import Path
 from typing import TYPE_CHECKING, Iterable, Optional, Union
 
 import py
@@ -6,14 +9,20 @@ from _pytest._code.code import ExceptionInfo, TerminalRepr
 from _pytest.config import Config, PytestPluginManager
 from _pytest.config.argparsing import Parser
 from _pytest.nodes import Collector, Node
+from _pytest.stash import StashKey
 
+import pytest_cairo
 from pytest_cairo.context import Context
 from pytest_cairo.contract import TestFunction
+from pytest_cairo.contract_index import generate_contract_proxy
 from pytest_cairo.patch import disable_contract_hash_computation
 
 if TYPE_CHECKING:
     # Imported here due to circular import.
     from _pytest._code.code import _TracebackStyle
+
+
+PYTEST_CAIRO_TEMP_DIR_KEY = StashKey[str]()
 
 
 def pytest_addoption(
@@ -29,6 +38,14 @@ def pytest_addoption(
         default=default,
         help='Disable computation of contract hash to speed up tests.',
     )
+    parser.addini(name=name, type='bool', default=default, help=help)
+
+    parser.addini(
+        name='contract_dirs',
+        type='paths',
+        help='List of directories containing Cairo contracts',
+        default=[],
+    )
 
 
 def pytest_configure(config: Config) -> None:
@@ -37,6 +54,21 @@ def pytest_configure(config: Config) -> None:
         config.getini('disable_contract_hash_computation')
     ):
         disable_contract_hash_computation()
+
+    temp_dir = tempfile.TemporaryDirectory()
+    config.add_cleanup(temp_dir.cleanup)
+    config.stash[PYTEST_CAIRO_TEMP_DIR_KEY] = temp_dir.name
+
+    target_dir = Path(temp_dir.name) / 'pytest_cairo'
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    with (target_dir / 'contract_index.cairo').open('a') as f:
+        f.write(generate_contract_proxy(root=Path('.')))
+
+    shutil.copy(
+        Path(pytest_cairo.__file__).parent / 'helpers.cairo',
+        target_dir,
+    )
 
 
 class CairoItem(pytest.Item):
@@ -64,7 +96,9 @@ class CairoFile(pytest.File):
 
     def collect(self) -> Iterable[Union[CairoItem, Collector]]:
         assert isinstance(self.fspath, py.path.local)
-        context = Context()
+        context = Context(cairo_path=[
+            self.config.stash[PYTEST_CAIRO_TEMP_DIR_KEY],
+        ])
         test_contract = context.deploy_contract(source=self.fspath.strpath)
         for test_function in test_contract.test_functions:
             yield CairoItem.from_parent(self, test_function=test_function)

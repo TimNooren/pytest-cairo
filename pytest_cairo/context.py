@@ -27,12 +27,17 @@ SUPPORTED_DECORATORS.add(FIXTURE_DECORATOR)
 
 class Context:
 
-    def __init__(self) -> None:
+    def __init__(self, cairo_path: List[str] = []) -> None:
+        self.cairo_path = cairo_path
+
         self.starknet = asyncio.run(Starknet.empty())
 
     def deploy_contract(self, source: str) -> TestContract:
         assert Path(source).is_file()
-        contract_def, preprocessed = self.compile_contracts([source])
+        contract_def, preprocessed = self.compile_contracts(
+            files=[source],
+            cairo_path=self.cairo_path,
+        )
         constructor_calldata = self.create_dummy_constructor_calldata(
             contract_def.abi,
         )
@@ -52,6 +57,7 @@ class Context:
         pass_manager = starknet_pass_manager(
             prime=DEFAULT_PRIME,
             read_module=get_module_reader(cairo_path=cairo_path).read,
+            disable_hint_validation=True,
         )
         for name, stage in pass_manager.stages:
             if name == 'preprocessor':
@@ -62,6 +68,7 @@ class Context:
             debug_info=debug_info,
             pass_manager=pass_manager,
         )
+
         program = Program.load(data=program.dump())
 
         assert isinstance(preprocessed, StarknetPreprocessedProgram)

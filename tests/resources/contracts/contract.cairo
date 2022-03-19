@@ -7,7 +7,7 @@ from starkware.cairo.common.math import assert_not_zero
 func constructor{
     syscall_ptr : felt*,
     pedersen_ptr : HashBuiltin*,
-}(arg : felt):
+}(arg1 : felt, arg2 : felt):
     return ()
 end
 
