@@ -4,11 +4,8 @@ from tests import RESOURCES_DIR
 
 
 def test_plugin(pytester: Pytester) -> None:
-    pytester.makepyprojecttoml(f"""
+    pytester.makepyprojecttoml("""
 [tool.pytest.ini_options]
-contract_dirs = [
-    "{RESOURCES_DIR / 'contracts/'}"
-]
 disable_contract_hash_computation=true
 """)
 

@@ -40,13 +40,6 @@ def pytest_addoption(
     )
     parser.addini(name=name, type='bool', default=default, help=help)
 
-    parser.addini(
-        name='contract_dirs',
-        type='paths',
-        help='List of directories containing Cairo contracts',
-        default=[],
-    )
-
 
 def pytest_configure(config: Config) -> None:
     if (
@@ -62,8 +55,8 @@ def pytest_configure(config: Config) -> None:
     target_dir = Path(temp_dir.name) / 'pytest_cairo'
     target_dir.mkdir(parents=True, exist_ok=True)
 
-    with (target_dir / 'contract_index.cairo').open('a') as f:
-        f.write(generate_contract_proxy(root=Path('.')))
+    with (target_dir / 'contract_index.cairo').open('w') as f:
+        f.write(generate_contract_proxy(root=Path.cwd()))
 
     shutil.copy(
         Path(pytest_cairo.__file__).parent / 'helpers.cairo',
