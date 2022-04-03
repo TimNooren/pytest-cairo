@@ -15,7 +15,7 @@ from starkware.starknet.compiler.starknet_preprocessor import (
     SUPPORTED_DECORATORS, StarknetPreprocessedProgram,
 )
 from starkware.starknet.services.api.contract_definition import (
-    ContractDefinition,
+    ContractDefinition, EntryPointType,
 )
 from starkware.starknet.testing.starknet import Starknet
 
@@ -38,12 +38,11 @@ class Context:
             files=[source],
             cairo_path=self.cairo_path,
         )
-        constructor_calldata = self.create_dummy_constructor_calldata(
-            contract_def.abi,
-        )
+
+        contract_def.entry_points_by_type[EntryPointType.CONSTRUCTOR] = []
+
         contract = asyncio.run(self.starknet.deploy(
             contract_def=contract_def,
-            constructor_calldata=constructor_calldata,
         ))
         return TestContract(contract, contract_def, preprocessed)
 
@@ -80,15 +79,3 @@ class Context:
             ),
             preprocessed,
         )
-
-    @staticmethod
-    def create_dummy_constructor_calldata(abi: List[dict]) -> List[int]:
-
-        constructor_def = next(
-            filter(lambda x: x['type'] == 'constructor', abi),
-            None,
-        )
-        if constructor_def is None:
-            return []
-        else:
-            return [0 for _ in constructor_def['inputs']]
