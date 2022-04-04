@@ -14,7 +14,7 @@ from _pytest.stash import StashKey
 import pytest_cairo
 from pytest_cairo.context import Context
 from pytest_cairo.contract import TestFunction
-from pytest_cairo.contract_index import generate_contract_proxy
+from pytest_cairo.contract_index import generate_contract_index
 from pytest_cairo.patch import disable_contract_hash_computation
 
 if TYPE_CHECKING:
@@ -56,7 +56,7 @@ def pytest_configure(config: Config) -> None:
     target_dir.mkdir(parents=True, exist_ok=True)
 
     with (target_dir / 'contract_index.cairo').open('w') as f:
-        f.write(generate_contract_proxy(root=Path.cwd()))
+        f.write(generate_contract_index(root=Path.cwd()))
 
     shutil.copy(
         Path(pytest_cairo.__file__).parent / 'helpers.cairo',

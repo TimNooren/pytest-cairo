@@ -60,7 +60,7 @@ def generate_namespace(contract_dir: Path, count: count) -> Namespace:
     return root
 
 
-def generate_contract_proxy(root: Path) -> str:
+def generate_contract_index(root: Path) -> str:
     _count = count()
 
     return '\n'.join(
