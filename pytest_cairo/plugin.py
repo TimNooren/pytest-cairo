@@ -88,11 +88,11 @@ class CairoItem(pytest.Item):
 class CairoFile(pytest.File):
 
     def collect(self) -> Iterable[Union[CairoItem, Collector]]:
-        assert isinstance(self.fspath, py.path.local)
+        assert isinstance(self.path, Path)
         context = Context(cairo_path=[
             self.config.stash[PYTEST_CAIRO_TEMP_DIR_KEY],
         ])
-        test_contract = context.deploy_contract(source=self.fspath.strpath)
+        test_contract = context.deploy_contract(source=str(self.path))
         for test_function in test_contract.test_functions:
             yield CairoItem.from_parent(self, test_function=test_function)
 
@@ -102,6 +102,6 @@ def pytest_collect_file(
     parent: Collector,
 ) -> Optional[Collector]:
     if path.ext == '.cairo' and path.basename.startswith('test_'):
-        return CairoFile.from_parent(parent, fspath=path)
+        return CairoFile.from_parent(parent, path=Path(path))
     else:
         return None
