@@ -22,11 +22,13 @@ end
 
 func set_block_number(block_number : felt) -> ():
     %{ 
-        from starkware.starknet.business_logic.state import BlockInfo
+        from starkware.starknet.business_logic.state.state import BlockInfo
 
+        current_block_info = syscall_handler.state.block_info
         syscall_handler.state.block_info = BlockInfo(
             ids.block_number,
-            syscall_handler.state.block_info.block_timestamp,
+            current_block_info.block_timestamp,
+            current_block_info.gas_price,
         )
     %}
     return ()
@@ -35,11 +37,13 @@ end
 
 func set_block_timestamp(block_timestamp : felt) -> ():
     %{ 
-        from starkware.starknet.business_logic.state import BlockInfo
+        from starkware.starknet.business_logic.state.state import BlockInfo
 
+        current_block_info = syscall_handler.state.block_info
         syscall_handler.state.block_info = BlockInfo(
-            syscall_handler.state.block_info.block_number,
+            current_block_info.block_number,
             ids.block_timestamp,
+            current_block_info.gas_price,
         )
     %}
     return ()
