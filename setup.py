@@ -18,7 +18,7 @@ setup(
     # PyPI classifier for pytest plugins:
     classifiers=['Framework :: Pytest'],
     install_requires=[
-        'cairo-lang',
+        'cairo-lang>=0.8.1',
         'pytest',
     ],
     python_requires='>=3.7',
