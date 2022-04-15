@@ -2,7 +2,7 @@ import pytest
 from _pytest.outcomes import Failed
 from starkware.starkware_utils.error_handling import StarkException
 
-from pytest_cairo.contract import ExpectedException, catch_expected_exceptions
+from pytest_cairo.function import ExpectedException, catch_expected_exceptions
 
 
 def test_catch_expected_exceptions_max_len() -> None:

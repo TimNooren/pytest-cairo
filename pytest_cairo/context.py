@@ -19,7 +19,8 @@ from starkware.starknet.services.api.contract_definition import (
 )
 from starkware.starknet.testing.starknet import Starknet
 
-from pytest_cairo.contract import FIXTURE_DECORATOR, TestContract
+from pytest_cairo.contract import TestContract
+from pytest_cairo.fixture import FIXTURE_DECORATOR
 from pytest_cairo.info_collector import ContractFunctionInfoCollector
 
 SUPPORTED_DECORATORS.add(FIXTURE_DECORATOR)

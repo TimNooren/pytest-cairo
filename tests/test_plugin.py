@@ -13,4 +13,4 @@ disable_contract_hash_computation=true
     # pytest config.
     pytester.copy_example(str(RESOURCES_DIR))
     run_result = pytester.runpytest_inprocess()
-    run_result.assert_outcomes(passed=12)
+    run_result.assert_outcomes(passed=13)

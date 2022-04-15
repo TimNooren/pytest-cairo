@@ -1,26 +1,19 @@
 import shutil
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterable, Optional, Union
+from typing import Iterable, Optional, Union
 
 import py
 import pytest
-from _pytest._code.code import ExceptionInfo, TerminalRepr
 from _pytest.config import Config, PytestPluginManager
 from _pytest.config.argparsing import Parser
-from _pytest.nodes import Collector, Node
+from _pytest.nodes import Collector
 from _pytest.stash import StashKey
 
 import pytest_cairo
 from pytest_cairo.context import Context
-from pytest_cairo.contract import TestFunction
 from pytest_cairo.contract_index import generate_contract_index
 from pytest_cairo.patch import disable_contract_hash_computation
-
-if TYPE_CHECKING:
-    # Imported here due to circular import.
-    from _pytest._code.code import _TracebackStyle
-
 
 PYTEST_CAIRO_TEMP_DIR_KEY = StashKey[str]()
 
@@ -64,28 +57,11 @@ def pytest_configure(config: Config) -> None:
     )
 
 
-class CairoItem(pytest.Item):
-
-    def __init__(
-        self,
-        parent: Optional[Node],
-        test_function: TestFunction,
-    ) -> None:
-        super().__init__(test_function.name, parent)
-        self.test_function = test_function
-
-    def runtest(self) -> None:
-        self.test_function.invoke()
-
-    def repr_failure(
-        self,
-        excinfo: ExceptionInfo[BaseException],
-        style: 'Optional[_TracebackStyle]' = None,
-    ) -> Union[str, TerminalRepr]:
-        return super().repr_failure(excinfo, style='short')
+class CairoItem(pytest.Function):
+    ...
 
 
-class CairoFile(pytest.File):
+class CairoFile(pytest.Module):
 
     def collect(self) -> Iterable[Union[CairoItem, Collector]]:
         assert isinstance(self.path, Path)
@@ -93,8 +69,15 @@ class CairoFile(pytest.File):
             self.config.stash[PYTEST_CAIRO_TEMP_DIR_KEY],
         ])
         test_contract = context.deploy_contract(source=str(self.path))
+
+        self.session._fixturemanager.parsefactories(
+            test_contract.fixtures, nodeid=self.nodeid,
+        )
+
         for test_function in test_contract.test_functions:
-            yield CairoItem.from_parent(self, test_function=test_function)
+            yield CairoItem.from_parent(
+                self, name=test_function.__name__, callobj=test_function,
+            )
 
 
 def pytest_collect_file(
