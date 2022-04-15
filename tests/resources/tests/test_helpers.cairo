@@ -68,10 +68,11 @@ end
 
 
 @view
-func test_impersonate{
+func test_impersonate_internal{
     syscall_ptr : felt*,
 }() -> ():
-
+    # Check whether caller_address and contract_address are set within the test
+    # contract.
     let (initial_caller_address) = get_caller_address()
     let (initial_contract_address) = get_contract_address()
 
@@ -84,6 +85,27 @@ func test_impersonate{
     assert caller_address = 123
     let (contract_address) = get_contract_address()
     assert contract_address = 123
+
+    return ()
+end
+
+
+@view
+func test_impersonate_external{
+    syscall_ptr : felt*,
+    range_check_ptr,
+}() -> ():
+    # Check whether caller_address and contract_address are set when calling
+    # methods on external contracts.
+
+    let (calldata : felt*) = alloc()
+    assert calldata[0] = 12
+    assert calldata[1] = 34
+    let (contract_address) = deploy_contract(contracts.contract, 2, calldata)
+
+    impersonate(123)
+
+    IContract.only_owner(contract_address=contract_address)
 
     return ()
 end
