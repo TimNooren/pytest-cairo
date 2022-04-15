@@ -5,10 +5,7 @@ from typing import Iterable, Optional, Union
 
 import py
 import pytest
-from _pytest.config import Config, PytestPluginManager
-from _pytest.config.argparsing import Parser
-from _pytest.nodes import Collector
-from _pytest.stash import StashKey
+from pytest import Collector, Config, Parser, PytestPluginManager, StashKey
 
 import pytest_cairo
 from pytest_cairo.context import Context

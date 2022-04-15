@@ -1,4 +1,4 @@
-from _pytest.pytester import Pytester
+from pytest import Pytester
 
 from tests import RESOURCES_DIR
 
