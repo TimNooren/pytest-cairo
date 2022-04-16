@@ -133,6 +133,35 @@ Other available helper functions:
 
 Helper functions can be imported from `pytest_cairo.helpers`.
 
+### Fixtures
+
+Fixtures work similarly to regular pytest fixtures: functions can be marked as fixtures using the `@fixture` decorator. Tests can then request a fixture's result by referencing the fixture name as an argument. A basic example:
+```
+%lang starknet
+
+
+@view
+@fixture
+func my_fixture() -> (fixture_return_value : felt):
+    return (fixture_return_value=999)
+end
+
+
+@view
+func test_fixture_usage(my_fixture : felt) -> ():
+
+    assert my_fixture = 999
+
+    return ()
+end
+```
+
+Note:
+- Fixtures can only return a single value. Use a struct if multiple values have to be returned.
+- Fixtures are `module` scope, i.e. they are executed once for each test module and the result is cached. If `function` scope is required, consider calling the function directly.
+- If a fixture is not meant to return any value, the argument in the test function should be annotated as a `felt` (a default value of `0` will be passed).
+
+
 ## Development
 To install development dependencies, run:
 ```bash
